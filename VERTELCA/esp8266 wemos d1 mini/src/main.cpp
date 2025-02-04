@@ -100,6 +100,7 @@ void setup() {
         Serial.println("Couldn't find RTC!");
         delay(1000);
     }
+    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
     swSerial.begin(9600);  // Инициализация программного последовательного порта
     // pinMode(14, INPUT_PULLUP);
     // analogWriteResolution(4);
