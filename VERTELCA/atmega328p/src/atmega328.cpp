@@ -123,5 +123,5 @@ void loop() {
     //Serial.write((byte*)&d,sizeof(d));
     //Serial.println("\r\nEND");
   }
-
+  protocol.update();  
 }
