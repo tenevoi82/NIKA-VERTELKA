@@ -112,11 +112,10 @@ void loop() {
     m=millis();
     //Serial.println("Serial data:");
     SerialData d;
-    d.Size = 3;
     d.data[0] = 1;
     d.data[1] = 2;
     d.data [2] = 3;
-    d.crc = crc8_bytes((byte*)&d, sizeof(d) - 1);
+
     //Serial.write((byte*)&d,sizeof(d));
     //Serial.println("\r\nEND");
 
