@@ -10,12 +10,12 @@ void stop_engine();
 #define PIN_ENA PD4
 #define PIN_ZERO PD5
 
-uint32_t current_step = 0;
+volatile uint32_t current_step = 0;
 float current_speed = 1;  // скорость гадусов в минуту
 
 // Создаём объект SoftwareSerial для ATmega328p на пинах 10 (RX) и 11 (TX)
 // Обычно на ATmega328p аппаратный Serial используется для отладки, поэтому здесь программный порт позволяет использовать другой канал для связи
-SoftwareSerial softSerial(0, 1);
+SoftwareSerial softSerial(4, 3);
 
 // Создаём глобальный объект протокола, передавая ему ранее созданный объект softSerial
 SerialProtocol protocol(softSerial);
@@ -29,17 +29,17 @@ void setup() {
   pinMode(PIN_PAS, OUTPUT);
   digitalWrite(PIN_PAS, LOW);
 
-  pinMode(PIN_DIR, OUTPUT);
-  digitalWrite(PIN_DIR, LOW);
+  // pinMode(PIN_DIR, OUTPUT);
+  // digitalWrite(PIN_DIR, LOW);
 
-  pinMode(PIN_ENA, OUTPUT);
-  digitalWrite(PIN_ENA, LOW);
+  // pinMode(PIN_ENA, OUTPUT);
+  // digitalWrite(PIN_ENA, LOW);
 
-  pinMode(PIN_ZERO, INPUT_PULLUP);
+  // pinMode(PIN_ZERO, INPUT_PULLUP);
 
   Timer2.enableISR(CHANNEL_B);
   set_speed(current_speed);  //отключить когда настрою протокол обмена
-  //Serial.begin(9600);
+  Serial.begin(9600);
   protocol.begin(9600); // Инициализируем SoftwareSerial для обмена данными на скорости 9600 бод
 }
 
@@ -98,10 +98,7 @@ uint8_t crc8_bytes(uint8_t *buffer, uint8_t size) {
 
 #pragma pack(push, 1)
 struct SerialData{
-  uint8_t magic = '$';
-  uint16_t Size;
   uint16_t data[6] = {0,0,0,0,0,0};
-  uint8_t crc;
 };
 #pragma pack(pop)
 
@@ -122,6 +119,7 @@ void loop() {
     d.crc = crc8_bytes((byte*)&d, sizeof(d) - 1);
     //Serial.write((byte*)&d,sizeof(d));
     //Serial.println("\r\nEND");
+
   }
   protocol.update();  
 }

@@ -10,100 +10,51 @@
 #include <SettingsGyver.h>
 #include "net2.hpp"
 
-GyverDBFile db(&LittleFS, "/settings.db");
+#include "web.hpp"
 
-SettingsGyver sett("NIKA - Вертелка", &db);
+extern GyverDBFile db;
 
-SoftwareSerial swSerial(D5, D6); // RX, TX // Назначение задействованных дискретных каналов
+extern SettingsGyver sett;
 
-#define WIFI_SSID "tenevoi"
+
+#define WIFI_SSID "tenevoi25"
 #define WIFI_PASS "dimadima"
 
 RTC_DS3231 rtc;
 
-DB_KEYS(
-    kk,
-    disableall,
-    timeOn,
-    timeOff,
-    speed,
-    angle,
-    enabled,
-    rotation,
-    softstop);
 
-struct Data
-{
-    DateTime rtcTime;
-    uint32_t unixtime;
-    float temp;
-    bool zeropoint = false;
-};
 
-Data data;
+
+
 
 int freq = 0;
-void build(sets::Builder &b)
-{
-    b.DateTime("Время на устр.", &data.unixtime);
-    b.LabelFloat("Температура", data.temp, 2, sets::Colors::Blue);
-    if (b.Switch(kk::disableall, "Выключить"))
-    {
-        sett.reload();
-    }
-    (db[kk::disableall].toBool()) ? analogWrite(12, 0) : analogWrite(12, 1);
-    if (!db[kk::disableall].toBool())
-    {
-        {
-            sets::Group g1(b, "Управление");
-            b.Switch(kk::rotation, "Вращение против часовой");
-            if (b.Slider(kk::speed, "Скорость вращения", 0.1, 2, 0.1, " об/мин"))
-            {
-                freq = 1000 * db[kk::speed].toFloat();
-                analogWriteFreq(freq);
-            }
-            if (b.Switch(kk::enabled, "Расписание вкл/выкл"))
-                b.reload(); // перезагрузить вебморду по клику на свитч
-        }
-        {
-            if (db[kk::enabled])
-            {
-                sets::Group g2(b, "Расписание");
-                b.Time(kk::timeOn, "Время включения");
-                b.Time(kk::timeOff, "Время выключения");
-                b.Slider(kk::angle, "Угол остановки", 0, 360, 0.5, "°");
-                b.Switch(kk::softstop, "Плавная остановка");
-            }
-        }
-    }
-}
 
-// void update(sets::Updater& u) {
-// }
 
-// Создаём объект SoftwareSerial, назначая пины 5 для приема (RX) и 4 для передачи (TX)
-// SoftwareSerial softSerial(5, 4);
+// Создаём объект SoftwareSerial, назначая пины D6 для приема (RX) и D7 для передачи (TX)
+SoftwareSerial swSerial(D6, D7); // RX, TX // Назначение задействованных дискретных каналов
 
-// Создаём глобальный объект протокола, передавая ему объект softSerial
+// Создаём глобальный объект протокола, передавая ему объект swSerial
 SerialProtocol protocol(swSerial);
+
+
 
 void setup()
 {
+    //питание SoftSerial & Rtc
+    pinMode(D5,OUTPUT);
+    digitalWrite(D5,HIGH);
 
-    // delay(1000);
-    //  TwoWire tw;
-    //  tw.setClock(200000);
-    //  tw.begin();
 
     protocol.begin(9600); // Инициализируем SoftwareSerial для обмена данными на скорости 9600 бод
     Serial.begin(74880);
-    // while (!rtc.begin())
-    // {
-    //     Serial.println("Couldn't find  RTC!");
-    //     delay(1000);
-    // }
-    // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-    // swSerial.begin(9600);  // Инициализация программного последовательного порта
+
+
+    while (!rtc.begin())
+    {
+        Serial.println("Couldn't find  RTC!");
+        delay(1000);
+    }
+    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
 
     // ======== WIFI ========
     // STA
@@ -132,10 +83,11 @@ void setup()
     db.init(kk::enabled, false);
     db.init(kk::rotation, false);
     db.init(kk::softstop, true);
+
     db.dump(Serial);
+
+
     freq = 1000 * db[kk::speed].toFloat();
-    if (!db[kk::disableall].toBool())
-        analogWriteFreq(freq);
 
     // ======== SETTINGS ========
     sett.config.sliderTout = 1000;
@@ -143,7 +95,7 @@ void setup()
     sett.config.updateTout = 500;
     sett.begin();
     sett.onBuild(build);
-    // sett.onUpdate(update);
+    sett.onUpdate(web_update);
 }
 
 void printTime()
@@ -152,7 +104,7 @@ void printTime()
     if (millis() - m > 5000)
     {
         //data.rtcTime = rtc.now();
-        data.unixtime = data.rtcTime.unixtime();
+        
         sett.reload();
         char timeText[128];
         // sprintf(timeText, "%02d:%02d:%02d %02d/%02d/%02d", data.rtcTime.hour(), data.rtcTime.minute(), data.rtcTime.second(),
@@ -165,6 +117,11 @@ void printTime()
 }
 
 
+
+
+
+
+
 void loop()
 {
     uint16_t d [] = {0, 0, 0, 0, 0, 0};
@@ -172,14 +129,13 @@ void loop()
 
 
     //data.unixtime = data.rtcTime.unixtime();
-    //data.temp = rtc.getTemperature();
+    data.temp = rtc.getTemperature();
     sett.tick();
     static auto f = millis();
-    if(millis() - f  > 5000){
+    if(millis() - f  > 2000){
         Serial.print("Отправляем днанные длинной ");
         Serial.print(sizeof(d));
         Serial.println(" байт....");
-        protocol.ackTimeout_ms = 3000;
         protocol.sendPacketNonBlocking((uint8_t*)d,sizeof(d),true);
         Serial.println("Отправленно.");
         f = millis();
