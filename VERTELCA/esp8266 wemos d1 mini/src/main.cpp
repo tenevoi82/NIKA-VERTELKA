@@ -16,27 +16,18 @@ extern GyverDBFile db;
 
 extern SettingsGyver sett;
 
-
-#define WIFI_SSID "tenevoi25"
+#define WIFI_SSID "tenevoi"
 #define WIFI_PASS "dimadima"
 
 RTC_DS3231 rtc;
 
-
-
-
-
-
 int freq = 0;
-
 
 // Создаём объект SoftwareSerial, назначая пины D6 для приема (RX) и D7 для передачи (TX)
 SoftwareSerial swSerial(D6, D7); // RX, TX // Назначение задействованных дискретных каналов
 
 // Создаём глобальный объект протокола, передавая ему объект swSerial
 SerialProtocol protocol(swSerial);
-
-
 
 void setup()
 {
@@ -52,9 +43,12 @@ void setup()
     while (!rtc.begin())
     {
         Serial.println("Couldn't find  RTC!");
+        digitalWrite(D5,LOW);
+        delay(1000);
+        digitalWrite(D5,HIGH);
         delay(1000);
     }
-    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+    //rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
 
     // ======== WIFI ========
     // STA
@@ -68,6 +62,8 @@ void setup()
         if (!--tries)
             break;
     }
+    Serial.println();
+    Serial.println();
     Serial.println();
     Serial.print("Connected: ");
     Serial.println(WiFi.localIP());
@@ -84,7 +80,7 @@ void setup()
     db.init(kk::rotation, false);
     db.init(kk::softstop, true);
 
-    db.dump(Serial);
+    //db.dump(Serial);
 
 
     freq = 1000 * db[kk::speed].toFloat();
@@ -98,51 +94,21 @@ void setup()
     sett.onUpdate(web_update);
 }
 
-void printTime()
-{
-    static unsigned long m = millis();
-    if (millis() - m > 5000)
-    {
-        //data.rtcTime = rtc.now();
-        
-        sett.reload();
-        char timeText[128];
-        // sprintf(timeText, "%02d:%02d:%02d %02d/%02d/%02d", data.rtcTime.hour(), data.rtcTime.minute(), data.rtcTime.second(),
-        //         data.rtcTime.day(), data.rtcTime.month(), data.rtcTime.year());
-        // Serial.println(timeText);
-        // Serial.println(data.unixtime);
-        // Serial.println(rtc.getTemperature());
-        m = millis();
-    }
-}
-
-
-
-
-
-
-
 void loop()
 {
     uint16_t d [] = {0, 0, 0, 0, 0, 0};
-
-
 
     //data.unixtime = data.rtcTime.unixtime();
     data.temp = rtc.getTemperature();
     sett.tick();
     static auto f = millis();
     if(millis() - f  > 2000){
-        Serial.print("Отправляем днанные длинной ");
-        Serial.print(sizeof(d));
-        Serial.println(" байт....");
         protocol.sendPacketNonBlocking((uint8_t*)d,sizeof(d),true);
-        Serial.println("Отправленно.");
+        //Serial.println(data.unixtime);
         f = millis();
     }
 
     // Вызываем метод update() объекта протокола для асинхронной обработки входящих данных,
     // проверки состояния ожидания подтверждения и управления отправкой/приёмом пакетов
     protocol.update();
-    //printTime();
 }
