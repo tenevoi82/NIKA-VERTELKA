@@ -1,4 +1,5 @@
 #include "Arduino.h"
+#include <avr/io.h>
 //Пример генерации меандра на таймере 2 , канале B (D3 на Arduino UNO)
 #include <GyverTimers.h>
 #include <SoftwareSerial.h>
@@ -25,6 +26,24 @@ SerialProtocol protocol(softSerial);
 void stop_engine() {
 }
 
+void gotcommand(uint8_t num[],uint8_t len){
+  uint32_t cmd = *(uint32_t*)(&num[0]);
+  uint32_t dt = *(uint32_t*)(&num[4]);
+  Serial.print(cmd);
+  Serial.print(" ");
+  Serial.println(dt);
+  switch (cmd)
+  {
+  case 2:
+    set_speed((float)dt/10);
+    break;
+  
+  default:
+    break;
+  }
+}
+
+
 void setup() {
   pinMode(PIN_PAS, OUTPUT);
   digitalWrite(PIN_PAS, LOW);
@@ -41,6 +60,7 @@ void setup() {
   set_speed(current_speed);  //отключить когда настрою протокол обмена
   Serial.begin(9600);
   protocol.begin(9600); // Инициализируем SoftwareSerial для обмена данными на скорости 9600 бод
+  protocol.SetListener(gotcommand);
 }
 
 ISR(TIMER2_B) {
@@ -49,7 +69,7 @@ ISR(TIMER2_B) {
     current_step++;
     if(current_step==60000){
       current_step = 0;
-      //Serial.println("КРУГ");
+      Serial.println("КРУГ");
     }
 
   } else
@@ -101,6 +121,7 @@ struct SerialData{
   uint16_t data[6] = {0,0,0,0,0,0};
 };
 #pragma pack(pop)
+
 
 
 

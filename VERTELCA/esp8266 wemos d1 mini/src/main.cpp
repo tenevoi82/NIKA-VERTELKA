@@ -8,9 +8,10 @@
 #include <GyverDBFile.h>
 #include <LittleFS.h>
 #include <SettingsGyver.h>
-#include "net2.hpp"
+#include "net.hpp"
 
 #include "web.hpp"
+#include "commands.hpp"
 
 extern GyverDBFile db;
 
@@ -29,6 +30,7 @@ SoftwareSerial swSerial(D6, D7); // RX, TX // Назначение задейс�
 // Создаём глобальный объект протокола, передавая ему объект swSerial
 SerialProtocol protocol(swSerial);
 
+Commands motor(protocol);
 
 
 void wifi_setup(){
@@ -80,7 +82,7 @@ void wifi_setup(){
         Serial.println(apIP);        
         Serial.println(
         "======================================="); 
-        
+
     }
 }
 
@@ -148,8 +150,7 @@ void loop()
     static auto f = millis();
     if (millis() - f > 2000)
     {
-        protocol.sendPacketNonBlocking((uint8_t *)d, sizeof(d), true);
-        // Serial.println(data.unixtime);
+        //motor.setSpeed(20);
         f = millis();
     }
 

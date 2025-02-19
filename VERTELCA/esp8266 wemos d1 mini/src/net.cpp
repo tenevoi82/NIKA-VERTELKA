@@ -1,27 +1,8 @@
-#include <Arduino.h>        // Подключаем основную библиотеку Arduino, содержащую базовые функции (setup, loop, millis и пр.)
-#include <SoftwareSerial.h> // Подключаем библиотеку SoftwareSerial для создания программного UART на произвольных пинах
-
-// Определяем константы для протокола обмена данными
-#define HEADER 0xAA // Определяем заголовок пакета (начальный байт), равный 0xAA
-#define ACK 0x55    // Определяем байт подтверждения (ACK), равный 0x55
-#define NACK 0xFF   // Определяем байт отрицательного подтверждения (NACK), равный 0xFF
-
-// Определяем флаг пакета: если установлен, то пакет требует подтверждения (ACK)
-#define FLAG_NEEDS_ACK 0x01 // Флаг, обозначающий, что пакет требует подтверждения (1 байт флагов)
-
-// Перечисление возможных состояний протокола
-enum ProtocolState
-{
-    STATE_IDLE,    // Состояние ожидания: нет активной передачи, система простаивает
-    STATE_WAIT_ACK // Состояние ожидания подтверждения: пакет отправлен, ждём ACK или NACK
-};
+#include "net.hpp"
 
 // Объявляем класс SerialProtocol для организации асинхронного обмена данными
-class SerialProtocol
-{
-public:
     // Конструктор класса, который принимает ссылку на объект SoftwareSerial
-    SerialProtocol(SoftwareSerial &serial)
+    SerialProtocol::SerialProtocol(SoftwareSerial &serial)
         : serial(serial),    // Инициализируем ссылку на SoftwareSerial
           state(STATE_IDLE), // Устанавливаем начальное состояние как IDLE (ожидание)
           ackTimeout(0),     // Инициализируем таймаут ожидания подтверждения нулевым значением
@@ -30,10 +11,8 @@ public:
     {
     }
 
-    unsigned long ackTimeout_ms = 1000; // Время (в миллисекундах) до которого ожидаем подтверждения (ACK)
-
     // Метод begin() инициализирует SoftwareSerial на заданной скорости (baud rate)
-    void begin(unsigned long baudRate)
+    void SerialProtocol::begin(unsigned long baudRate)
     {
         serial.begin(baudRate); // Запускаем SoftwareSerial на указанной скорости
     }
@@ -42,7 +21,7 @@ public:
     // data - указатель на массив с полезными данными
     // length - длина полезных данных
     // needsAck - булевское значение: true, если пакет требует подтверждения, false если не требует
-    void sendPacketNonBlocking(uint8_t *data, uint8_t length, bool needsAck)
+    void SerialProtocol::sendPacketNonBlocking(uint8_t *data, uint8_t length, bool needsAck)
     {
         // Формируем пакет: размер пакета равен длине полезных данных + 4 байта для HEADER, LENGTH, FLAGS и CRC
         uint8_t packet[length + 4];                   // Создаём массив нужного размера для пакета
@@ -73,7 +52,7 @@ public:
     // - Формирования пакета из полученных байтов
     // - Обработки полученного пакета (подтверждения или команд)
     // - Управления состоянием ожидания подтверждения (проверка таймаута)
-    void update()
+    void SerialProtocol::update()
     {
         // Считываем все доступные байты из SoftwareSerial
         while (serial.available() > 0)
@@ -152,17 +131,10 @@ public:
         }
     }
 
-private:
-    SoftwareSerial &serial;   // Ссылка на объект SoftwareSerial для обмена данными
-    ProtocolState state;      // Переменная, хранящая текущее состояние протокола (IDLE или WAIT_ACK)
-    unsigned long ackTimeout; // Время (в миллисекундах) до которого ожидаем подтверждения (ACK)
-    uint8_t rxBuffer[32];     // Буфер для хранения входящих байтов данных
-    uint8_t rxIndex;          // Индекс текущей позиции в буфере приёма
-    bool packetReady;         // Флаг, указывающий, что получен полный пакет и он готов к обработке
 
     // Метод crc8() вычисляет CRC-8 для входящего массива данных
     // data - указатель на массив данных, len - длина данных, для которых вычисляется контрольная сумма
-    uint8_t crc8(const uint8_t *data, uint8_t len)
+    uint8_t SerialProtocol::crc8(const uint8_t *data, uint8_t len)
     {
         uint8_t crc = 0; // Инициализируем переменную для CRC нулём
         while (len--)
@@ -180,23 +152,3 @@ private:
         }
         return crc; // Возвращаем вычисленное значение CRC
     }
-};
-
-// // Создаём объект SoftwareSerial, назначая пины 5 для приема (RX) и 4 для передачи (TX)
-// SoftwareSerial softSerial(5, 4);
-
-// // Создаём глобальный объект протокола, передавая ему объект softSerial
-// SerialProtocol protocol(softSerial);
-
-// void setup() {
-//   Serial.begin(115200);        // Инициализируем аппаратный последовательный порт для вывода отладочной информации
-//   protocol.begin(9600);        // Инициализируем SoftwareSerial для обмена данными на скорости 9600 бод
-// }
-
-// void loop() {
-//   // Вызываем метод update() объекта протокола для асинхронной обработки входящих данных,
-//   // проверки состояния ожидания подтверждения и управления отправкой/приёмом пакетов
-//   protocol.update();
-
-//   // Здесь можно выполнять другие задачи, так как основной цикл не блокируется
-// }

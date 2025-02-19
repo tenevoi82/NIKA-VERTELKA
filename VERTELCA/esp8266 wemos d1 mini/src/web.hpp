@@ -3,10 +3,13 @@
 #include <GyverDBFile.h>
 #include "data.hpp"
 #include <StampKeeper.h>
+#include "commands.hpp"
 
 extern RTC_DS3231 rtc;
 
 SettingsGyver sett("NIKA - Вертелка", &db);
+
+extern Commands motor;
 
 void web_update(sets::Updater &u)
 {
@@ -86,6 +89,10 @@ void build(sets::Builder &b)
                 Serial.print("Установленно скорость вращения ");
                 Serial.print(db[kk::speed].toFloat());
                 Serial.println(" об/мин");
+                uint32_t spd = (db[kk::speed].toFloat())*10;
+                Serial.print("Отправляю на мотор команду скорость ");
+                Serial.println(spd);
+                motor.setSpeed(spd);
                 // freq = 1000 * db[kk::speed].toFloat();
                 // analogWriteFreq(freq);
             }
