@@ -2,6 +2,7 @@
 #include <SettingsGyver.h>
 #include <GyverDBFile.h>
 #include "data.hpp"
+#include <StampKeeper.h>
 
 extern RTC_DS3231 rtc;
 
@@ -13,17 +14,58 @@ void web_update(sets::Updater &u)
 
 void build(sets::Builder &b)
 {
-    data.unixtime = rtc.now().unixtime();
-    if (b.DateTime("Время на устр.", &data.unixtime))
-    {
-        DateTime dt(data.unixtime);
-        rtc.adjust(dt);
-    }
     b.LabelFloat("Температура", data.temp, 2, sets::Colors::Blue);
-    if (b.Switch(kk::disableall, "Выключить"))
     {
+        b.beginGroup();
+        uint32_t unixtime = rtc.now().unixtime();
+        if (b.DateTime("Время", &unixtime))
+        {
+            DateTime dt(unixtime);
+            rtc.adjust(dt);
+        }
+        // uint32_t unix_time_brouser = sett.rtc.getUnix();
+        // b.DateTime("На смартфоне", &unix_time_brouser);
+        if (b.Button("Синхронизировать время c браузером"))
+        {
+            Serial.print("Время браузера: ");
+            Serial.println(sett.rtc.now().toString());
+            DateTime br_time(sett.rtc.getUnix());
+            rtc.adjust(br_time);
+            b.reload();
+        }
+        b.endGroup();
+    }
+    {
+        sets::Group g5(b, "WIFI");
+        if(b.Input(kk::wifissid, "SSID")){
+            Serial.print("Изменён WiFi SSID на: ");
+            Serial.println(db[kk::wifissid].c_str());
+        }
+        if(b.Pass(kk::wifipass, "Пароль")){
+            Serial.print("Изменён WiFi пароль на: ");
+            Serial.println(db[kk::wifipass].c_str());
+        }
+        if (b.Button("Перезагрузить устройство", sets::Colors::Orange))
+        {
+            if (db.update())
+            {
+                Serial.println("Изменения в базе зафиксированны, перезагрузка!");
+                delay(200);
+                ESP.restart();
+            }
+        }
+    }    
+    if (b.Switch(kk::disableall, "Выключить всё"))
+    {
+        if(db[kk::disableall].toBool()){
+            Serial.println("Пользователь выключил \"Всё\" =)");
+        }
+        else{
+            Serial.println("Пользователь включил \"Всё\" =)");
+        }
         sett.reload();
     }
+
     if (!db[kk::disableall].toBool())
     {
         {

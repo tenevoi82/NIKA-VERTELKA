@@ -13,15 +13,14 @@ DB_KEYS(
     angle,
     enabled,
     rotation,
-    softstop);
+    softstop,
+    wifissid,
+    wifipass);
 
 
 struct Data
 {
-    DateTime rtcTime;
-    uint32_t unixtime;
     float temp;
-    bool zeropoint = false;
 };
 
 Data data;
