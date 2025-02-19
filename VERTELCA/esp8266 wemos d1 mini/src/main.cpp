@@ -93,7 +93,7 @@ void setup()
     pinMode(D5, OUTPUT);
     digitalWrite(D5, HIGH);
 
-    protocol.begin(9600); // Инициализируем SoftwareSerial для обмена данными на скорости 9600 бод
+    protocol.begin(38400); // Инициализируем SoftwareSerial для обмена данными на скорости 9600 бод
     Serial.begin(74880);
 
     delay(1000);

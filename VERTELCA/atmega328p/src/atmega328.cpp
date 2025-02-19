@@ -59,7 +59,7 @@ void setup() {
   Timer2.enableISR(CHANNEL_B);
   set_speed(current_speed);  //отключить когда настрою протокол обмена
   Serial.begin(9600);
-  protocol.begin(9600); // Инициализируем SoftwareSerial для обмена данными на скорости 9600 бод
+  protocol.begin(38400); // Инициализируем SoftwareSerial для обмена данными на скорости 9600 бод
   protocol.SetListener(gotcommand);
 }
 
