@@ -20,8 +20,6 @@ enum ProtocolState
 class SerialProtocol
 {
 public:
-
-    
     // Конструктор принимает ссылку на объект SoftwareSerial и инициализирует внутренние переменные
     SerialProtocol(SoftwareSerial &serial)
         : serial(serial),    // Инициализируем ссылку на SoftwareSerial
@@ -32,12 +30,10 @@ public:
     {
     }
 
-    void SetListener(void (*handler)(uint8_t[],uint8_t)) {
+    void SetListener(bool (*handler)(uint8_t[], uint8_t))
+    {
         this->handler = handler;
     }
-
-
-        
 
     unsigned long ackTimeout_ms = 1000; // Время (в миллисекундах) до которого ожидаем подтверждения (ACK)
 
@@ -72,7 +68,7 @@ public:
         // Если пакет требует подтверждения, переходим в состояние ожидания подтверждения
         if (needsAck)
         {
-            state = STATE_WAIT_ACK;       // Устанавливаем состояние протокола как ожидание подтверждения
+            state = STATE_WAIT_ACK;                // Устанавливаем состояние протокола как ожидание подтверждения
             ackTimeout = millis() + ackTimeout_ms; // Устанавливаем таймаут ожидания ACK на 1000 миллисекунд (1 секунда)
         }
         // Если пакет не требует подтверждения, состояние остаётся STATE_IDLE
@@ -135,22 +131,36 @@ public:
                 else if (flags & FLAG_NEEDS_ACK)
                 {
                     // Если флаг установлен, значит полученный пакет требует отправки подтверждения
-                    Serial.println("Received command packet requiring ACK."); // Выводим сообщение о получении команды с требованием подтверждения
-                    uint8_t ackPayload[] = {ACK};                             // Формируем полезную нагрузку для ACK (один байт, равный ACK)
-                    // Отправляем подтверждение, используя асинхронную отправку (неблокирующая)
-                    sendPacketNonBlocking(ackPayload, 1, false);
-                    if (handler) 
-                        handler(&rxBuffer[3],length); // Вызываем обработчик, если установлен
-
+                    //Serial.println("Received command packet requiring ACK."); // Выводим сообщение о получении команды с требованием подтверждения
+                    if (handler != nullptr)
+                    {
+                        if (handler(&rxBuffer[3], length))
+                        {                                 // Вызываем обработчик, если установлен
+                            uint8_t ackPayload[] = {ACK}; // Формируем полезную нагрузку для ACK (один байт, равный ACK)
+                            // Отправляем подтверждение, используя асинхронную отправку (неблокирующая)
+                            sendPacketNonBlocking(ackPayload, 1, false);
+                        }
+                        else
+                        {
+                            uint8_t ackPayload[] = {NACK}; // Формируем полезную нагрузку для ACK (один байт, равный ACK)
+                            // Отправляем подтверждение, используя асинхронную отправку (неблокирующая)
+                            sendPacketNonBlocking(ackPayload, 1, false);
+                        }
+                    }
+                    else
+                    {
+                        uint8_t ackPayload[] = {NACK}; // Формируем полезную нагрузку для ACK (один байт, равный ACK)
+                        // Отправляем подтверждение, используя асинхронную отправку (неблокирующая)
+                        sendPacketNonBlocking(ackPayload, 1, false);
+                    }
                 }
                 // Если пакет не является подтверждением и не требует его, обрабатываем его как обычную команду/данные
                 else
                 {
                     Serial.println("Received command packet."); // Выводим сообщение о получении команды без требования подтверждения
                                                                 // Здесь можно добавить дополнительную обработку полученных данных/команды
-                    if (handler) 
-                        handler(&rxBuffer[3],length); // Вызываем обработчик, если установлен
-
+                    if (handler)
+                        handler(&rxBuffer[3], length); // Вызываем обработчик, если установлен
                 }
             }
             // Если CRC не совпадает, выводим сообщение об ошибке
@@ -179,7 +189,7 @@ private:
     uint8_t rxIndex;          // Индекс текущей позиции в буфере приёма
     bool packetReady;         // Флаг, указывающий, что пакет полностью получен и готов к обработке
 
-    void(*handler)(uint8_t[],uint8_t) = nullptr; // Указатель на функцию
+    bool (*handler)(uint8_t[], uint8_t) = nullptr; // Указатель на функцию
 
     // Метод crc8() вычисляет контрольную сумму CRC-8 для входного массива данных
     // data - указатель на массив данных, len - длина массива, для которого вычисляется контрольная сумма

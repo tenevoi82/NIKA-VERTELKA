@@ -93,7 +93,7 @@ void setup()
     pinMode(D5, OUTPUT);
     digitalWrite(D5, HIGH);
 
-    protocol.begin(38400); // Инициализируем SoftwareSerial для обмена данными на скорости 9600 бод
+    protocol.begin(9600); // Инициализируем SoftwareSerial для обмена данными на скорости 9600 бод
     Serial.begin(74880);
 
     delay(1000);
@@ -127,10 +127,10 @@ void setup()
 
     freq = 1000 * db[kk::speed].toFloat();
 
-    // ======== SETTINGS ========
-    // sett.config.sliderTout = 1000;
-    // sett.config.requestTout = 1000;
-    // sett.config.updateTout = 500;
+    //======== SETTINGS ========
+    sett.config.sliderTout = 1000;
+    sett.config.requestTout = 1000;
+    sett.config.updateTout = 500;
     
     // установить инфо о проекте (отображается на вкладке настроек и файлов)
     // void setProjectInfo(const char* name, const char* link = nullptr);
@@ -142,8 +142,6 @@ void setup()
 
 void loop()
 {
-    uint16_t d[] = {0, 0, 0, 0, 0, 0};
-
     // data.unixtime = data.rtcTime.unixtime();
     data.temp = rtc.getTemperature();
     sett.tick();

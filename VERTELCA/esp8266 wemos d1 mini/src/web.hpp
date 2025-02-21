@@ -54,17 +54,19 @@ void build(sets::Builder &b)
             {
                 Serial.println("Изменения в базе зафиксированны, перезагрузка!");
                 delay(200);
-                ESP.restart();
             }
+            ESP.restart();
         }
     }    
     if (b.Switch(kk::disableall, "Выключить всё"))
     {
         if(db[kk::disableall].toBool()){
             Serial.println("Пользователь выключил \"Всё\" =)");
+            motor.DisableAll();
         }
         else{
             Serial.println("Пользователь включил \"Всё\" =)");
+            motor.Run();
         }
         sett.reload();
     }
@@ -78,10 +80,14 @@ void build(sets::Builder &b)
                 if (db[kk::rotation].toBool() == true)
                 {
                     Serial.println("Включено вращение против часовой стрелки");
+                    Serial.println("Отправляю на мотор вращение против часовой стрелки");
+                    motor.setDirection(2);
                 }
                 else
                 {
                     Serial.println("Выключено вращение против часовой стрелки");
+                    Serial.println("Отправляю на мотор вращение по часовой стрелке");
+                    motor.setDirection(1);
                 }
             }
             if (b.Slider(kk::speed, "Скорость вращения", 0.1, 2, 0.1, " об/мин"))
@@ -134,10 +140,12 @@ void build(sets::Builder &b)
                     if (db[kk::softstop].toBool())
                     {
                         Serial.println("Плавная остановка включена");
+                        motor.softstop(true);
                     }
                     else
                     {
                         Serial.println("Плавная остановка выключена");
+                        motor.softstop(false);
                     }
                 }
             }
